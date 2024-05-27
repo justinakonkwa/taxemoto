@@ -305,7 +305,8 @@
 //   }
 // }
 
-// ignore_for_file: prefer_const_constructors
+
+// ignore_for_file: unused_local_variable
 
 import 'dart:io';
 
@@ -316,7 +317,6 @@ import 'package:flutter/widgets.dart';
 import 'package:sunmi_printer_plus/enums.dart';
 import 'package:sunmi_printer_plus/sunmi_printer_plus.dart';
 import 'package:sunmi_printer_plus/sunmi_style.dart';
-import 'package:taxaero/widget/app_text.dart';
 import 'package:taxaero/widget/app_text_large.dart';
 
 class DetailPage extends StatelessWidget {
@@ -347,6 +347,33 @@ class DetailPage extends StatelessWidget {
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
+                 FutureBuilder(
+                  future: _bindingPrinter(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.done) {
+                      bool? printBinded = snapshot.data as bool?;
+                      // int? paperSize = 0;
+                      String serialNumber = "";
+                      String printerVersion = "";
+
+                      // SunmiPrinter.paperSize().then((int size) {
+                      //   paperSize = size;
+                      // });
+
+                      SunmiPrinter.printerVersion().then((String version) {
+                        printerVersion = version;
+                      });
+
+                      SunmiPrinter.serialNumber().then((String serial) {
+                        serialNumber = serial;
+                      });
+
+                      return Container();
+                    } else {
+                      return CircularProgressIndicator();
+                    }
+                  },
+                ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -559,5 +586,9 @@ class DetailPage extends StatelessWidget {
         SnackBar(content: Text('Échec de l\'impression : $e')),
       );
     }
+  }
+   Future<bool> _bindingPrinter() async {
+    bool? result = await SunmiPrinter.bindingPrinter();
+    return result ?? false;
   }
 }

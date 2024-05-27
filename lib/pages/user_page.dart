@@ -23,12 +23,8 @@ class UserPage extends StatefulWidget {
 class _UserPageState extends State<UserPage> {
   TextEditingController name = TextEditingController();
 
-  Country? selectedCountry;
-  String? selectedGender;
-
   String imageUrl = '';
   Uint8List? fileData;
-  bool flag = false;
   DateTime selectedDate = DateTime.now();
 
   final ImagePicker _picker = ImagePicker();
@@ -41,21 +37,6 @@ class _UserPageState extends State<UserPage> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.clear();
     Navigator.pushReplacementNamed(context, '/intro');
-  }
-
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: selectedDate,
-      firstDate: DateTime(1950),
-      lastDate: DateTime(2101),
-    );
-
-    if (picked != null && picked != selectedDate) {
-      setState(() {
-        selectedDate = picked;
-      });
-    }
   }
 
   @override
@@ -171,152 +152,21 @@ class _UserPageState extends State<UserPage> {
                 ),
               ),
               SizedBox(height: 20),
-              AppText(text: 'Date of birth'),
-              sizedbox,
-              Container(
-                padding: EdgeInsets.only(left: 20, right: 20),
-                height: 50,
-                width: double.maxFinite,
-                decoration: BoxDecoration(
-                  border: Border.all(
-                      color: Theme.of(context).colorScheme.onBackground),
-                  borderRadius: borderRadius,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Icon(CupertinoIcons.calendar_badge_plus),
-                    AppText(
-                      text: '${selectedDate.toLocal()}',
-                    ),
-                    Container(
-                      alignment: Alignment.centerRight,
-                      child: InkWell(
-                          onTap: () {
-                            _selectDate(context);
-                          },
-                          child: Icon(CupertinoIcons.chevron_compact_down)),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 20),
-              AppText(text: 'Gender'),
-              sizedbox,
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Ink(
-                    height: 50,
-                    width: MediaQuery.of(context).size.width * 0.42,
-                    decoration: BoxDecoration(
-                        border: Border.all(
-                          color: Theme.of(context).colorScheme.onBackground,
-                        ),
-                        borderRadius: borderRadius),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        Radio(
-                          value: 'Man',
-                          groupValue: selectedGender,
-                          activeColor:
-                              Theme.of(context).colorScheme.onBackground,
-                          onChanged: (value) {
-                            setState(() {
-                              selectedGender = value!;
-                              print(selectedGender);
-                            });
-                          },
-                        ),
-                        Text('Man'),
-                      ],
-                    ),
-                  ),
-                  Ink(
-                    height: 50,
-                    width: MediaQuery.of(context).size.width * 0.42,
-                    decoration: BoxDecoration(
-                        border: Border.all(
-                          color: Theme.of(context).colorScheme.onBackground,
-                        ),
-                        borderRadius: borderRadius),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        Radio(
-                          value: 'Woman',
-                          groupValue: selectedGender,
-                          activeColor:
-                              Theme.of(context).colorScheme.onBackground,
-                          onChanged: (value) {
-                            setState(() {
-                              selectedGender = value!;
-                              print(selectedGender);
-                            });
-                          },
-                        ),
-                        Text('Woman'),
-                      ],
-                    ),
-                  )
-                ],
-              ),
               sizedbox,
               sizedbox,
               NextButton(
-                onTap: () {},
-                child: Text('save'),
-              ),
-              IconButton(
-                icon: 
-                isLoading?
-                CircularProgressIndicator():
-                Row(
-                  children: [
-                    AppText(
-                      text: 'Se Deconnecter',
-                    ),
-                    Icon(Icons.logout),
-                  ],
-                ),
-                onPressed: () => {
-                  _logout(context),
+                onTap: () {
+                  _logout(context);
                 },
+                child: isLoading
+                    ? CircularProgressIndicator()
+                    : AppText(
+                        text: 'Se Deconnecter',
+                      ),
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  cardtext() {
-    return Container(
-      padding: EdgeInsets.only(left: 20, right: 20),
-      height: 50,
-      width: double.maxFinite,
-      decoration: BoxDecoration(
-        border: Border.all(),
-        borderRadius: borderRadius,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Icon(CupertinoIcons.calendar_badge_plus),
-          AppText(
-            text: '${selectedDate.toLocal()}',
-          ),
-          Container(
-            alignment: Alignment.centerRight,
-            child: InkWell(
-              onTap: () {
-                _selectDate(context);
-              },
-              child: Icon(CupertinoIcons.chevron_compact_down),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -344,30 +194,6 @@ class _UserPageState extends State<UserPage> {
     } else {
       log('Aucune image sélectionnée.');
     }
-  }
-}
-
-class Country {
-  String name;
-  String iso;
-  String flag;
-
-  Country({required this.name, required this.iso, required this.flag});
-
-  Map<String, dynamic> toMap() {
-    return {
-      'name': name,
-      'iso': iso,
-      'flag': flag,
-    };
-  }
-
-  factory Country.fromMap(Map<String, dynamic> map) {
-    return Country(
-      name: map['name'] ?? '',
-      iso: map['iso'] ?? '',
-      flag: map['flag'] ?? '',
-    );
   }
 }
 

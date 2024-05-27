@@ -1,10 +1,10 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:taxaero/pages/detail_page.dart';
-import 'package:taxaero/widget/app_text.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+
+import 'package:taxaero/pages/detail_page.dart';
 
 class HistoryPage extends StatefulWidget {
   HistoryPage({Key? key}) : super(key: key);
@@ -16,6 +16,8 @@ class HistoryPage extends StatefulWidget {
 class _HistoryPageState extends State<HistoryPage> {
   List<dynamic> invoices = [];
   bool isLoading = false;
+  bool hasData = false;
+
   @override
   void initState() {
     super.initState();
@@ -23,9 +25,18 @@ class _HistoryPageState extends State<HistoryPage> {
   }
 
   Future<void> fetchInvoices() async {
-    final url = Uri.parse('https://taxe.happook.com/api/invoices');
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    String token = prefs.getString('token') ?? '';
+    String? token = prefs.getString('token');
+
+    if (token == null) {
+      setState(() {
+        invoices = prefs.getStringList('invoices')?.map((e) => jsonDecode(e)).toList() ?? [];
+        hasData = invoices.isNotEmpty;
+      });
+      return;
+    }
+
+    final url = Uri.parse('https://taxe.happook.com/api/invoices');
 
     try {
       final response = await http.get(
@@ -41,12 +52,10 @@ class _HistoryPageState extends State<HistoryPage> {
         List<dynamic> invoicesList = responseData['hydra:member'] ?? [];
         setState(() {
           invoices = invoicesList;
+          hasData = invoices.isNotEmpty;
         });
 
-        // Imprimer les données de la première facture
-        if (invoices.isNotEmpty) {
-          print('Données de la première facture : ${invoices[0]}');
-        }
+        prefs.setStringList('invoices', invoices.map((e) => jsonEncode(e)).toList());
       } else {
         throw Exception('Failed to load invoices');
       }
@@ -58,92 +67,82 @@ class _HistoryPageState extends State<HistoryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          elevation: 0.0,
-          automaticallyImplyLeading: true,
-          title: AppText(text: 'Historique de paiement'),
-          centerTitle: true,
-          actions: [
-            GestureDetector(
-              onTap: () {},
-              child: Card(
-                child: Container(
-                  height: 40,
-                  width: 40,
-                  child: Icon(
-                    Icons.search,
+      appBar: AppBar(
+        elevation: 0.0,
+        automaticallyImplyLeading: true,
+        title: const Text('Historique de paiement'),
+        centerTitle: true,
+      ),
+      body: !hasData
+          ? Center(
+              child: Container(
+                  decoration: const BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage('assets/nulldata.png'),
+                    ),
                   ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        body: invoices.isEmpty
-            ? Container(
-                decoration: const BoxDecoration(
-                  image:  DecorationImage(
-                    image: AssetImage('assets/nulldata.png'),
-                  ),
-                ),
-              )
-            : ListView.builder(
-                itemCount: invoices.length,
-                itemBuilder: (BuildContext context, int index) {
-                  // Récupérer les détails de la facture à partir de la liste invoices
-                  Map<String, dynamic> invoice = invoices[index];
+                )
+            )
+          : invoices.isEmpty
+              ? const Center(
+                  child: Text('Aucune donnée disponible'),
+                )
+              : ListView.builder(
+                  itemCount: invoices.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    invoices.sort((a, b) => b['createdAt'].compareTo(a['createdAt'])); // Tri décroissant
 
-                  return Padding(
-                    padding: const EdgeInsets.only(
-                        left: 10.0, right: 10.0, top: 5.0),
-                    child: GestureDetector(
-                      onTap: () {
-                        // Gérer la navigation vers la page de détail avec les détails de la facture
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => DetailPage(
-                              numero: invoice['reference'] ??
-                                  '', // Utiliser la référence de la facture
-                              date: DateFormat('yyyy-MM-dd HH:mm').format(
-                                  DateTime.now()), // Utiliser la date actuelle
-                              montant: invoice['bill'] ??
-                                  '', // Utiliser le montant de la facture
-                              taxateur: invoice['id'] ??
-                                  '', // Utiliser le taxateur de la facture (s'il est disponible)
-                              parking: invoice['ticket'] ??
-                                  '', // Utiliser le ticket de la facture
-                            ),
-                          ),
-                        );
-                        print(invoice);
-                      },
+                    Map<String, dynamic> invoice = invoices[index];
+
+                    String formattedDate = '';
+                    if (invoice['createdAt'] != null) {
+                      DateTime parsedDate = DateTime.parse(invoice['createdAt']);
+                      formattedDate = DateFormat('yyyy-MM-dd HH:mm').format(parsedDate);
+                      DateTime gmtPlusOneDate = parsedDate.add(const Duration(hours: 1));
+                      formattedDate = DateFormat('yyyy-MM-dd HH:mm').format(gmtPlusOneDate);
+                    }
+
+                    return Padding(
+                      padding: const EdgeInsets.only(left: 10.0, right: 10.0, top: 5.0),
                       child: Card(
                         child: ListTile(
-                          leading: Text(
-                              (index + 1).toString()), // Numéroter le ListTile
-
+                          leading: Text((index + 1).toString()), // Numéroter le ListTile
                           title: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              AppText(
-                                text: 'Montant: ${invoice['bill']}',
-                                size: 14,
+                              Text(
+                                'Montant: ${invoice['bill']}',
+                                style: const TextStyle(fontSize: 14),
                               ),
-                              AppText(
-                                text: 'Référence: ${invoice['reference']}',
-                                size: 14,
+                              Text(
+                                'Référence: ${invoice['reference']}',
+                                style: const TextStyle(),
                               ),
                             ],
                           ),
-                          trailing: AppText(
-                            text: invoice['ticket'] ?? '',
-                            size: 14,
+                          trailing: Text(
+                            invoice['ticket'] ?? '',
                           ),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => DetailPage(
+                                  numero: invoice['reference'] ?? '', 
+                                  date: formattedDate,
+                                  montant: invoice['bill'] ?? '', 
+                                  taxateur: invoice['id'] ?? '', 
+                                  parking: invoice['ticket'] ?? '',
+                                ),
+                              ),
+                            );
+                            print(invoice);
+                          },
                         ),
                       ),
-                    ),
-                  );
-                },
-              ));
+                    );
+                  },
+                ),
+    );
   }
 }

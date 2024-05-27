@@ -127,7 +127,6 @@ class _ScanPageState extends State<ScanPage> {
     if (Platform.isAndroid) {
       controller!.pauseCamera();
     }
-
     controller!.resumeCamera();
   }
 
@@ -148,44 +147,71 @@ class _ScanPageState extends State<ScanPage> {
   // Gestion du résultat du scan
   void processQRCode(String? result) async {
     if (result != null) {
-      // Utilisez la méthode fetchInvoice pour récupérer les informations de la facture
+      print('QR Code result: $result');
       try {
-        Map<String, dynamic> invoiceData = await fetchInvoice(result);
-        // Affichez les informations de la facture dans votre application
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: AppText(text: 'Détails de la facture'),
-            content: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                AppText(text: 'Numéro: ${invoiceData['numero']}'),
-                AppText(text: 'Date: ${invoiceData['date']}'),
-                AppText(text: 'Montant: ${invoiceData['montant']}'),
-                AppText(text: 'Taxateur: ${invoiceData['taxateur']}'),
-                AppText(text: 'Parking: ${invoiceData['parking']}'),
+        // Utilisez la méthode fetchInvoiceByNumero pour récupérer les informations de la facture par numéro
+        Map<String, dynamic>? invoiceData = await fetchInvoiceByNumero(result);
+        if (invoiceData != null) {
+          // Affichez les informations de la facture dans votre application
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: AppText(text: 'Détails de la facture'),
+              content: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  AppText(text: 'Numéro: $result'),
+                  AppText(text: 'Ticket: ${invoiceData['ticket']}'),
+                  AppText(text: 'Montant: ${invoiceData['bill']} Fc'), // Montant
+                  AppText(text: 'Référence: ${invoiceData['reference']}'), // Référence
+                  AppText(text: 'Date: ${invoiceData['date']}'), // Date
+                ],
+              ),
+              actions: <Widget>[
+                TextButton(
+                  child: AppText(text: 'OK'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    controller!.resumeCamera();
+                  },
+                ),
               ],
             ),
-            actions: <Widget>[
-              TextButton(
-                child: AppText(text: 'OK'),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ],
-          ),
-        );
+          );
+        } else {
+          // Facture non trouvée
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: AppText(text: 'Erreur'),
+              content: AppText(text: 'Aucune facture trouvée pour le numéro $result.'),
+              actions: <Widget>[
+                TextButton(
+                  child: AppText(text: 'OK'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    controller!.resumeCamera();
+                  },
+                ),
+              ],
+            ),
+          );
+        }
       } catch (e) {
-        // Gérez les erreurs de récupération de la facture
+        print('Erreur lors de la récupération des informations de la facture: $e');
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
             title: AppText(text: 'Erreur'),
-            content: AppText(text: 'Impossible de récupérer les informations de la facture'),
+            content: AppText(text: 'Impossible de récupérer les informations de la facture.'),
             actions: <Widget>[
               TextButton(
                 child: AppText(text: 'OK'),
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  controller!.resumeCamera();
+                },
               ),
             ],
           ),
@@ -201,13 +227,15 @@ class _ScanPageState extends State<ScanPage> {
           actions: <Widget>[
             TextButton(
               child: AppText(text: 'OK'),
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () {
+                Navigator.of(context).pop();
+                controller!.resumeCamera();
+              },
             ),
           ],
         ),
       );
     }
-    Navigator.pop(context); // Pour retourner à la page précédente après traitement
   }
 
   @override
@@ -217,7 +245,7 @@ class _ScanPageState extends State<ScanPage> {
         elevation: 0.0,
         automaticallyImplyLeading: false,
         centerTitle: true,
-        title: AppText(text: 'Scanner Qr code'),
+        title: AppText(text: 'Scanner QR code'),
       ),
       body: Column(
         children: <Widget>[
@@ -235,40 +263,48 @@ class _ScanPageState extends State<ScanPage> {
               ),
             ),
           ),
-          Expanded(
-            flex: 1,
-            child: Center(
-              child: AppText(text: 'Scannez un code QR'),
-            ),
-          )
-        ],
-      ),
-    );
-  }
-  static Future<Map<String, dynamic>> fetchInvoice(String codeQR) async {
-    final url = Uri.parse('https://taxe.happook.com/api/invoices/$codeQR'); // URL de votre API pour récupérer les détails de la facture
-
-    try {
-      final response = await http.get(url);
-
-      if (response.statusCode == 200) {
-        // Analysez les données JSON de la réponse pour extraire les informations sur la facture
-        Map<String, dynamic> responseData = jsonDecode(response.body);
-        return {
-          'numero': responseData['numero'],
-          'date': responseData['date'],
-          'montant': responseData['montant'],
-          'taxateur': responseData['taxateur'],
-          'parking': responseData['parking'],
-        };
-      } else {
-        // Gérez les erreurs de requête HTTP
-        throw Exception('Échec de la requête: ${response.statusCode}');
-      }
-    } catch (e) {
-      // Gérez les erreurs d'exception
-      throw Exception('Erreur lors de la récupération des données de la facture: $e');
-    }
-  }
+         
+Expanded(
+  flex: 1,
+  child: Center(
+    child: AppText(text: 'Scannez un code QR'),
+  ),
+)
+],
+),
+);
 }
 
+static Future<Map<String, dynamic>?> fetchInvoiceByNumero(String numero) async {
+final url = Uri.parse('https://taxe.happook.com/api/invoices?numero=$numero');
+
+print('Fetching invoice with numero: $numero and URL: $url');
+
+try {
+final response = await http.get(url);
+
+print('Status code: ${response.statusCode}');
+print('Response body: ${response.body}');
+
+if (response.statusCode == 200) {
+  List<dynamic> responseData = jsonDecode(response.body)['hydra:member'];
+  if (responseData.isNotEmpty) {
+    Map<String, dynamic> invoiceData = responseData.first;
+    return {
+      'numero': invoiceData['numero'],
+      'ticket': invoiceData['ticket'],
+      'bill': invoiceData['bill'],
+      'reference': invoiceData['reference'],
+      'date': invoiceData['date'],
+    };
+  }
+} else {
+  throw Exception('Échec de la requête: ${response.statusCode}');
+}
+} catch (e) {
+print('Erreur lors de la récupération des factures: $e');
+throw Exception('Erreur lors de la récupération des factures: $e');
+}
+return null;
+}
+}
