@@ -9,6 +9,7 @@ import 'package:taxaero/widget/app_text.dart';
 import 'package:taxaero/widget/bouton_next.dart';
 import 'package:taxaero/widget/constantes.dart';
 
+
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -64,7 +65,8 @@ class _LoginPageState extends State<LoginPage> {
           final String token = responseData['token'];
           final Map<String, dynamic> userData = responseData['data'];
           final String id = userData['id']; // Extract the user ID
-          final String username = userData['name'] ?? 'N/A'; // Exemple d'une autre information
+          final String username =
+              userData['name'] ?? 'N/A'; // Exemple d'une autre information
 
           // Print the extracted ID for debugging
           print('User ID: $id');
@@ -76,10 +78,12 @@ class _LoginPageState extends State<LoginPage> {
           // Stockez plus d'informations selon vos besoins
 
           // Si la réponse du serveur est OK, naviguez vers la page principale
-          Navigator.pushReplacementNamed(context, '/home');
+
+          Navigator.pushReplacementNamed(context, '/main');
         } else {
           // Si le token n'est pas présent dans la réponse
-          _showErrorDialog('Réponse invalide du serveur. Veuillez réessayer plus tard.');
+          _showErrorDialog(
+              'Réponse invalide du serveur. Veuillez réessayer plus tard.');
         }
       } else {
         // Si la réponse du serveur n'est pas OK, affichez un message d'erreur

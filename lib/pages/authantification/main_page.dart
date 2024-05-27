@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:taxaero/pages/home_page.dart';
 import 'package:taxaero/pages/intro/Intro.dart';
+import 'package:taxaero/pages/mainpage.dart';
 
 class AuthVerification extends StatefulWidget {
   const AuthVerification({super.key});
@@ -25,7 +25,7 @@ class _AuthVerificationState extends State<AuthVerification> {
     if (isLoggedIn) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const HomePage()),
+        MaterialPageRoute(builder: (context) => const MainPage()),
       );
     } else {
       Navigator.pushReplacement(
@@ -37,7 +37,7 @@ class _AuthVerificationState extends State<AuthVerification> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return const Scaffold(
       body: Center(
         child: CircularProgressIndicator(),
       ),

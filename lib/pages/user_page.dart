@@ -1,10 +1,9 @@
-// ignore_for_file: prefer_const_constructors
+// ignore_for_file: prefer_const_constructors, unused_shown_name
 
 import 'dart:developer';
 import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'dart:convert';
 import 'dart:async' show Future;
 import 'package:flutter/services.dart' show Uint8List, rootBundle;
 import 'package:image_picker/image_picker.dart';
