@@ -189,8 +189,8 @@ class _HomePageState extends State<HomePage> {
                       },
                       child: Card(
                         child: Container(
-                          height: 40,
-                          width: 40,
+                          height: 50,
+                          width: 50,
                           child: IconButton(
                             onPressed: () {
                               showModalBottomSheet(

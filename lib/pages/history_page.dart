@@ -1,3 +1,5 @@
+// ignore_for_file: use_super_parameters, depend_on_referenced_packages
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
@@ -7,7 +9,7 @@ import 'dart:convert';
 import 'package:taxaero/pages/detail_page.dart';
 
 class HistoryPage extends StatefulWidget {
-  HistoryPage({Key? key}) : super(key: key);
+  const HistoryPage({Key? key}) : super(key: key);
 
   @override
   _HistoryPageState createState() => _HistoryPageState();
@@ -30,7 +32,11 @@ class _HistoryPageState extends State<HistoryPage> {
 
     if (token == null) {
       setState(() {
-        invoices = prefs.getStringList('invoices')?.map((e) => jsonDecode(e)).toList() ?? [];
+        invoices = prefs
+                .getStringList('invoices')
+                ?.map((e) => jsonDecode(e))
+                .toList() ??
+            [];
         hasData = invoices.isNotEmpty;
       });
       return;
@@ -55,7 +61,8 @@ class _HistoryPageState extends State<HistoryPage> {
           hasData = invoices.isNotEmpty;
         });
 
-        prefs.setStringList('invoices', invoices.map((e) => jsonEncode(e)).toList());
+        prefs.setStringList(
+            'invoices', invoices.map((e) => jsonEncode(e)).toList());
       } else {
         throw Exception('Failed to load invoices');
       }
@@ -74,39 +81,50 @@ class _HistoryPageState extends State<HistoryPage> {
         centerTitle: true,
       ),
       body: !hasData
-          ? Center(
-              child: Container(
-                  decoration: const BoxDecoration(
-                    image: DecorationImage(
-                      image: AssetImage('assets/nulldata.png'),
-                    ),
-                  ),
-                )
-            )
+          ? const Center(child: Text('...chargement'))
           : invoices.isEmpty
-              ? const Center(
-                  child: Text('Aucune donnée disponible'),
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Container(
+                      decoration: const BoxDecoration(
+                        image: DecorationImage(
+                          image: AssetImage('assets/nulldata1.png'),
+                        ),
+                      ),
+                    ),
+                    const Center(
+                      child: Text('Aucune donnée disponible'),
+                    ),
+                  ],
                 )
               : ListView.builder(
                   itemCount: invoices.length,
                   itemBuilder: (BuildContext context, int index) {
-                    invoices.sort((a, b) => b['createdAt'].compareTo(a['createdAt'])); // Tri décroissant
+                    invoices.sort((a, b) => b['createdAt']
+                        .compareTo(a['createdAt'])); // Tri décroissant
 
                     Map<String, dynamic> invoice = invoices[index];
 
                     String formattedDate = '';
                     if (invoice['createdAt'] != null) {
-                      DateTime parsedDate = DateTime.parse(invoice['createdAt']);
-                      formattedDate = DateFormat('yyyy-MM-dd HH:mm').format(parsedDate);
-                      DateTime gmtPlusOneDate = parsedDate.add(const Duration(hours: 1));
-                      formattedDate = DateFormat('yyyy-MM-dd HH:mm').format(gmtPlusOneDate);
+                      DateTime parsedDate =
+                          DateTime.parse(invoice['createdAt']);
+                      formattedDate =
+                          DateFormat('yyyy-MM-dd HH:mm').format(parsedDate);
+                      DateTime gmtPlusOneDate =
+                          parsedDate.add(const Duration(hours: 1));
+                      formattedDate =
+                          DateFormat('yyyy-MM-dd HH:mm').format(gmtPlusOneDate);
                     }
 
                     return Padding(
-                      padding: const EdgeInsets.only(left: 10.0, right: 10.0, top: 5.0),
+                      padding: const EdgeInsets.only(
+                          left: 10.0, right: 10.0, top: 5.0),
                       child: Card(
                         child: ListTile(
-                          leading: Text((index + 1).toString()), // Numéroter le ListTile
+                          leading: Text(
+                              (index + 1).toString()), // Numéroter le ListTile
                           title: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -128,10 +146,10 @@ class _HistoryPageState extends State<HistoryPage> {
                               context,
                               MaterialPageRoute(
                                 builder: (context) => DetailPage(
-                                  numero: invoice['reference'] ?? '', 
+                                  numero: invoice['reference'] ?? '',
                                   date: formattedDate,
-                                  montant: invoice['bill'] ?? '', 
-                                  taxateur: invoice['id'] ?? '', 
+                                  montant: invoice['bill'] ?? '',
+                                  taxateur: invoice['id'] ?? '',
                                   parking: invoice['ticket'] ?? '',
                                 ),
                               ),
