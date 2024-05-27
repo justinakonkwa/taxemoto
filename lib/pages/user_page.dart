@@ -2,22 +2,21 @@
 
 import 'dart:developer';
 import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'dart:async' show Future;
-import 'package:flutter/services.dart' show Uint8List, rootBundle;
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:taxaero/widget/app_text.dart';
-import 'package:taxaero/widget/app_text_large.dart';
 import 'package:taxaero/widget/bouton_next.dart';
 import 'package:taxaero/widget/constantes.dart';
 
 class UserPage extends StatefulWidget {
-  const UserPage({super.key});
+  const UserPage({Key? key}) : super(key: key);
 
   @override
-  State<UserPage> createState() => _UserPageState();
+  _UserPageState createState() => _UserPageState();
 }
 
 class _UserPageState extends State<UserPage> {
@@ -31,6 +30,26 @@ class _UserPageState extends State<UserPage> {
   bool isPicture = false;
   String imagePath = '';
   bool isLoading = false;
+  String userName = ''; // Add this variable to hold the user's name
+
+  @override
+  void initState() {
+    super.initState();
+    // Call a method to fetch the user's name from SharedPreferences when the state initializes
+    fetchUserName();
+  }
+
+  // Method to fetch the user's name from SharedPreferences
+  Future<void> fetchUserName() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      // Retrieve the user's name from SharedPreferences
+      userName = prefs.getString('username') ??
+          ''; // If username is null, set it to an empty string
+      name.text =
+          userName; // Set the initial value of the TextEditingController
+    });
+  }
 
   Future<void> _logout(BuildContext context) async {
     isLoading == true;
@@ -42,9 +61,22 @@ class _UserPageState extends State<UserPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: AppTextLarge(size: 14, text: "Profil"),
-        actions: [sizedbox2],
+        backgroundColor: Colors.transparent,
+        automaticallyImplyLeading: false,
+        title: Text("Profil"),
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            icon: const Icon(
+              Icons.clear,
+              color: Colors.red,
+            ),
+          )
+        ],
       ),
       body: SingleChildScrollView(
         child: Padding(

@@ -191,8 +191,23 @@ class _HomePageState extends State<HomePage> {
                         child: Container(
                           height: 40,
                           width: 40,
-                          child: const Icon(
-                            Icons.person,
+                          child: IconButton(
+                            onPressed: () {
+                              showModalBottomSheet(
+                                backgroundColor: Colors.transparent,
+                                useSafeArea: true,
+                                context: context,
+                                builder: (context) {
+                                  return Container(
+                                    decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(20),
+                                        color: Colors.white),
+                                    child: const UserPage(),
+                                  );
+                                },
+                              );
+                            },
+                            icon: Icon(Icons.person),
                           ),
                         ),
                       ),
