@@ -440,71 +440,140 @@ class _HomePageState extends State<HomePage> {
       print('Retrieved numberOfInvoicesLastMonth: $numberOfInvoicesLastMonth');
     });
   }
+void fetchData() async {
+  if (!_totalBillTodayController.isClosed && !_numberOfInvoicesTodayController.isClosed) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
 
-  void fetchData() async {
-    if (!_totalBillTodayController.isClosed &&
-        !_numberOfInvoicesTodayController.isClosed) {
-      final now = DateTime.now();
-      final today = DateTime(now.year, now.month, now.day);
+    List<dynamic> allInvoices = [];
+    int page = 1;
+    bool morePagesAvailable = true;
 
-      List<dynamic> allInvoices = [];
-      int page = 1;
-      bool morePagesAvailable = true;
+    while (morePagesAvailable) {
+      final url = Uri.parse('https://taxe.happook.com/api/invoices?page=$page');
+      final response = await http.get(url);
 
-      while (morePagesAvailable) {
-        final url =
-            Uri.parse('https://taxe.happook.com/api/invoices?page=$page');
-        final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final jsonData = json.decode(response.body);
+        final List<dynamic> invoices = jsonData['hydra:member'];
 
-        if (response.statusCode == 200) {
-          final jsonData = json.decode(response.body);
-          final List<dynamic> invoices = jsonData['hydra:member'];
-
-          if (invoices.isEmpty) {
-            morePagesAvailable = false;
-          } else {
-            allInvoices.addAll(invoices);
-            page++;
-          }
+        if (invoices.isEmpty) {
+          morePagesAvailable = false;
         } else {
-          print('Failed to fetch data. Status code: ${response.statusCode}');
-          break;
+          allInvoices.addAll(invoices);
+          page++;
         }
+      } else {
+        print('Failed to fetch data. Status code: ${response.statusCode}');
+        break;
       }
-
-      final todayInvoices = allInvoices.where((invoice) {
-        final invoiceDateStr = invoice['createdAt'];
-        if (invoiceDateStr != null) {
-          final invoiceDate = DateTime.parse(invoiceDateStr).toLocal();
-          return invoiceDate.year == today.year &&
-              invoiceDate.month == today.month &&
-              invoiceDate.day == today.day;
-        }
-        return false;
-      }).toList();
-
-      final numberOfInvoicesToday = todayInvoices.length;
-      final totalBillToday = todayInvoices.fold(0.0, (sum, invoice) {
-        final bill = invoice['bill'];
-        if (bill != null && double.tryParse(bill) != null) {
-          return sum + double.parse(bill);
-        }
-        return sum;
-      }).toDouble();
-
-      if (!_totalBillTodayController.isClosed) {
-        _totalBillTodayController.add(totalBillToday);
-      }
-      if (!_numberOfInvoicesTodayController.isClosed) {
-        _numberOfInvoicesTodayController.add(numberOfInvoicesToday);
-      }
-
-      updateSalesDataList(allInvoices);
-
-      print('Nombre de factures vendues aujourd\'hui : $numberOfInvoicesToday');
-      print('Total des montants vendus aujourd\'hui : $totalBillToday');
     }
+
+    final yesterday = today.subtract(Duration(days: 1));
+    final yesterdayInvoices = allInvoices.where((invoice) {
+      final invoiceDateStr = invoice['createdAt'];
+      if (invoiceDateStr != null) {
+        final invoiceDate = DateTime.parse(invoiceDateStr).toLocal();
+        return invoiceDate.year == yesterday.year && invoiceDate.month == yesterday.month && invoiceDate.day == yesterday.day;
+      }
+      return false;
+    }).toList();
+
+    print('Factures d\'hier : $yesterdayInvoices');
+
+    final numberOfInvoicesYesterday = yesterdayInvoices.length;
+    final totalBillYesterday = yesterdayInvoices.fold(0.0, (sum, invoice) {
+      final bill = invoice['bill'];
+      if (bill != null && double.tryParse(bill) != null) {
+        return sum + double.parse(bill);
+      }
+      return sum;
+    }).toDouble();
+
+    print('Total des factures d\'hier : $totalBillYesterday');
+    print('Nombre de factures d\'hier : $numberOfInvoicesYesterday');
+
+    await storeYesterdayData(totalBillYesterday, numberOfInvoicesYesterday);
+
+    final lastMonth = DateTime(now.year, now.month - 1);
+    final lastMonthInvoices = allInvoices.where((invoice) {
+      final invoiceDateStr = invoice['createdAt'];
+      if (invoiceDateStr != null) {
+        final invoiceDate = DateTime.parse(invoiceDateStr).toLocal();
+        return invoiceDate.year == lastMonth.year && invoiceDate.month == lastMonth.month;
+      }
+      return false;
+    }).toList();
+
+    final numberOfInvoicesLastMonth = lastMonthInvoices.length;
+    final totalBillLastMonth = lastMonthInvoices.fold(0.0, (sum, invoice) {
+      final bill = invoice['bill'];
+      if (bill != null && double.tryParse(bill) != null) {
+        return sum + double.parse(bill);
+      }
+      return sum;
+    }).toDouble();
+
+    setState(() {
+      this.numberOfInvoicesLastMonth = numberOfInvoicesLastMonth;
+      this.totalBillLastMonth = totalBillLastMonth;
+    });
+
+    final todayInvoices = allInvoices.where((invoice) {
+      final invoiceDateStr = invoice['createdAt'];
+      if (invoiceDateStr != null) {
+        final invoiceDate = DateTime.parse(invoiceDateStr).toLocal();
+        return invoiceDate.year == today.year && invoiceDate.month == today.month && invoiceDate.day == today.day;
+      }
+      return false;
+    }).toList();
+
+    final numberOfInvoicesToday = todayInvoices.length;
+    final totalBillToday = todayInvoices.fold(0.0, (sum, invoice) {
+      final bill = invoice['bill'];
+      if (bill != null && double.tryParse(bill) != null) {
+        return sum + double.parse(bill);
+      }
+      return sum;
+    }).toDouble();
+
+    if (!_totalBillTodayController.isClosed) {
+      _totalBillTodayController.add(totalBillToday);
+    }
+    if (!_numberOfInvoicesTodayController.isClosed) {
+      _numberOfInvoicesTodayController.add(numberOfInvoicesToday);
+    }
+
+    updateSalesDataList(allInvoices);
+
+    print('Nombre de factures vendues aujourd\'hui : $numberOfInvoicesToday');
+    print('Total des montants vendus aujourd\'hui : $totalBillToday');
   }
+}
+
+Future<void> storeYesterdayData(double totalBill, int numberOfInvoices) async {
+  prefs = await SharedPreferences.getInstance();
+  await prefs.setDouble('totalBillYesterday', totalBill);
+  await prefs.setInt('numberOfInvoicesYesterday', numberOfInvoices);
+  print('Storing totalBillYesterday: $totalBill');
+  print('Storing numberOfInvoicesYesterday: $numberOfInvoices');
+}
+
+
+void scheduleEndOfDayTask() {
+  final now = DateTime.now();
+  final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
+
+  final durationUntilEndOfDay = endOfDay.difference(now);
+
+  Timer(durationUntilEndOfDay, () async {
+    final totalBillToday = await _totalBillTodayController.stream.first;
+    final numberOfInvoicesToday = await _numberOfInvoicesTodayController.stream.first;
+    storeYesterdayData(totalBillToday, numberOfInvoicesToday);
+    print('End of day data stored - Sales: $totalBillToday, Invoices: $numberOfInvoicesToday');
+  });
+}
+
 
   void updateSalesDataList(List<dynamic> invoices) {
     salesDataList = [];
@@ -551,37 +620,6 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  void storeYesterdayData(double totalBill, int numberOfInvoices) async {
-    prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble('totalBillYesterday', totalBill);
-    await prefs.setInt('numberOfInvoicesYesterday', numberOfInvoices);
-    print('Storing totalBillYesterday: $totalBill');
-    print('Storing numberOfInvoicesYesterday: $numberOfInvoices');
-  }
-
-  void scheduleEndOfDayTask() {
-    final now = DateTime.now();
-    final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
-
-    final durationUntilEndOfDay = endOfDay.difference(now);
-
-    Timer(durationUntilEndOfDay, () async {
-      final totalBillToday = await _totalBillTodayController.stream.first;
-      final numberOfInvoicesToday =
-          await _numberOfInvoicesTodayController.stream.first;
-      storeYesterdayData(totalBillToday, numberOfInvoicesToday);
-      print(
-          'End of day data stored - Sales: $totalBillToday, Invoices: $numberOfInvoicesToday');
-    });
-  }
-
-  String customNumberFormat(double value) {
-    if (value >= 1000) {
-      return '${(value / 1000).toStringAsFixed(1)}k';
-    } else {
-      return value.toString();
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
