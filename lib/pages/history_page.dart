@@ -1,5 +1,3 @@
-// ignore_for_file: use_super_parameters, depend_on_referenced_packages
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
@@ -17,16 +15,16 @@ class HistoryPage extends StatefulWidget {
 
 class _HistoryPageState extends State<HistoryPage> {
   List<dynamic> invoices = [];
-  bool isLoading = false;
+  bool isLoading = true;
   bool hasData = false;
 
   @override
   void initState() {
     super.initState();
-    fetchInvoices();
+    fetchAllInvoices();
   }
 
-  Future<void> fetchInvoices() async {
+  Future<void> fetchAllInvoices() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? token = prefs.getString('token');
 
@@ -38,37 +36,57 @@ class _HistoryPageState extends State<HistoryPage> {
                 .toList() ??
             [];
         hasData = invoices.isNotEmpty;
+        isLoading = false;
       });
       return;
     }
 
-    final url = Uri.parse('https://taxe.happook.com/api/invoices');
+    List<dynamic> allInvoices = [];
+    int page = 1;
+    bool morePagesAvailable = true;
 
-    try {
-      final response = await http.get(
-        url,
-        headers: <String, String>{
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
+    while (morePagesAvailable) {
+      final url = Uri.parse('https://taxe.happook.com/api/invoices?page=$page');
 
-      if (response.statusCode == 200) {
-        Map<String, dynamic> responseData = jsonDecode(response.body);
-        List<dynamic> invoicesList = responseData['hydra:member'] ?? [];
+      try {
+        final response = await http.get(
+          url,
+          headers: <String, String>{
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          Map<String, dynamic> responseData = jsonDecode(response.body);
+          List<dynamic> invoicesList = responseData['hydra:member'] ?? [];
+
+          if (invoicesList.isEmpty) {
+            morePagesAvailable = false;
+          } else {
+            allInvoices.addAll(invoicesList);
+            page++;
+          }
+        } else {
+          throw Exception('Failed to load invoices');
+        }
+      } catch (e) {
+        print('Error fetching invoices: $e');
         setState(() {
-          invoices = invoicesList;
-          hasData = invoices.isNotEmpty;
+          isLoading = false;
         });
-
-        prefs.setStringList(
-            'invoices', invoices.map((e) => jsonEncode(e)).toList());
-      } else {
-        throw Exception('Failed to load invoices');
+        return;
       }
-    } catch (e) {
-      print('Error fetching invoices: $e');
     }
+
+    setState(() {
+      invoices = allInvoices;
+      hasData = invoices.isNotEmpty;
+      isLoading = false;
+    });
+
+    prefs.setStringList(
+        'invoices', invoices.map((e) => jsonEncode(e)).toList());
   }
 
   @override
@@ -80,24 +98,10 @@ class _HistoryPageState extends State<HistoryPage> {
         title: const Text('Historique de paiement'),
         centerTitle: true,
       ),
-      body: !hasData
-          ? const Center(child: Text('...chargement'))
-          : invoices.isEmpty
-              ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Container(
-                      decoration: const BoxDecoration(
-                        image: DecorationImage(
-                          image: AssetImage('assets/nulldata1.png'),
-                        ),
-                      ),
-                    ),
-                    const Center(
-                      child: Text('Aucune donnée disponible'),
-                    ),
-                  ],
-                )
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : !hasData
+              ? const Center(child: Text('Aucune donnée disponible'))
               : ListView.builder(
                   itemCount: invoices.length,
                   itemBuilder: (BuildContext context, int index) {
@@ -119,8 +123,8 @@ class _HistoryPageState extends State<HistoryPage> {
                     }
 
                     return Padding(
-                      padding: const EdgeInsets.only(
-                          left: 10.0, right: 10.0, top: 5.0),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10.0, vertical: 5.0),
                       child: Card(
                         child: ListTile(
                           leading: Text(
