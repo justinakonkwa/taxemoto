@@ -83,7 +83,7 @@ class _MyAppState extends State<MyApp> {
               '/scan': (context) => ScanPage(),
               '/user': (context) => SettingsPage(),
               '/main': (context) => MainPage(),
-              '/detail': (context) => DetailPage(numero: '', date: '', montant: '', taxateur: '', parking: '',),
+              '/detail': (context) => DetailPage(numero: '', date: '', amount: 0, taxateur: '', parking: '',),
               '/authent': (context) => LoginPage()
             },
           );

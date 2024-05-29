@@ -1,5 +1,3 @@
-// ignore_for_file: use_build_context_synchronously
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -21,11 +19,11 @@ class _EditTaxFormPageState extends State<EditTaxFormPage> {
   final _formKey = GlobalKey<FormState>();
 
   String ticket = '';
-  String bill = '';
+  int amount = 0; // Changement ici
   late TextEditingController referenceController;
   late TextEditingController taxerController;
   late TextEditingController ticketController;
-  late TextEditingController billController;
+  late TextEditingController amountController; // Changement ici
 
   bool isLoading = false;
 
@@ -35,7 +33,7 @@ class _EditTaxFormPageState extends State<EditTaxFormPage> {
     referenceController = TextEditingController();
     taxerController = TextEditingController();
     ticketController = TextEditingController();
-    billController = TextEditingController();
+    amountController = TextEditingController(); // Changement ici
     initValues();
   }
 
@@ -44,7 +42,7 @@ class _EditTaxFormPageState extends State<EditTaxFormPage> {
     referenceController.dispose();
     taxerController.dispose();
     ticketController.dispose();
-    billController.dispose();
+    amountController.dispose(); // Changement ici
     super.dispose();
   }
 
@@ -72,9 +70,9 @@ class _EditTaxFormPageState extends State<EditTaxFormPage> {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: jsonEncode(<String, String>{
+        body: jsonEncode(<String, dynamic>{
           'ticket': ticket,
-          'bill': bill,
+          'amount': amount, // Envoyer amount comme un int
           'reference': reference,
           'taxer': 'api/users/$userId',
           'date_sold': currentDateTime,
@@ -84,7 +82,7 @@ class _EditTaxFormPageState extends State<EditTaxFormPage> {
       if (response.statusCode == 201) {
         var responseData = jsonDecode(response.body);
         var ticket = responseData['ticket'];
-        var bill = responseData['bill'];
+        var amount = responseData['amount']; // Garder amount comme un int
         var reference = responseData['reference'];
 
         Navigator.of(context).pop();
@@ -94,7 +92,7 @@ class _EditTaxFormPageState extends State<EditTaxFormPage> {
             builder: (context) => DetailPage(
               numero: reference,
               date: currentDateTime,
-              montant: bill,
+              amount: amount, // Garder amount comme un int
               taxateur: taxerController.text,
               parking: ticket,
             ),
@@ -156,7 +154,7 @@ class _EditTaxFormPageState extends State<EditTaxFormPage> {
                     'Numero', referenceController, TextInputType.none),
                 const SizedBox(height: 20),
                 buildFieldWithLabel(
-                    'Montant', billController, TextInputType.number),
+                    'Montant', amountController, TextInputType.number), // Changement ici
                 const SizedBox(height: 20),
                 buildFieldWithLabel(
                     'Parking', ticketController, TextInputType.text),
@@ -170,12 +168,12 @@ class _EditTaxFormPageState extends State<EditTaxFormPage> {
                       : CupertinoButton(
                           color:  Colors.blue.shade400,
                           onPressed: () {
-                            if (billController.text.isNotEmpty &&
+                            if (amountController.text.isNotEmpty && // Changement ici
                                 ticketController.text.isNotEmpty) {
                               if (_formKey.currentState != null &&
                                   _formKey.currentState!.validate()) {
                                 setState(() {
-                                  bill = billController.text;
+                                  amount = int.parse(amountController.text); // Changement ici
                                   ticket = ticketController.text;
                                 });
                                 sendInvoice(context);

@@ -307,7 +307,6 @@
 
 
 // ignore_for_file: unused_local_variable
-
 import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
@@ -322,7 +321,7 @@ import 'package:taxaero/widget/app_text_large.dart';
 class DetailPage extends StatelessWidget {
   final String numero;
   final String date;
-  final String montant;
+  final int amount; // Changement ici
   final String taxateur;
   final String parking;
 
@@ -330,7 +329,7 @@ class DetailPage extends StatelessWidget {
     Key? key,
     required this.numero,
     required this.date,
-    required this.montant,
+    required this.amount, // Changement ici
     required this.taxateur,
     required this.parking,
   }) : super(key: key);
@@ -463,7 +462,7 @@ class DetailPage extends StatelessWidget {
                             height: 10,
                           ),
                           Text(
-                            ':$montant',
+                            ':$amount', // Changement ici
                             style: const TextStyle(fontSize: 20),
                           ),
                           const SizedBox(
@@ -556,7 +555,7 @@ class DetailPage extends StatelessWidget {
       await SunmiPrinter.printText('');
       await SunmiPrinter.printText('Date: $date');
       await SunmiPrinter.printText('');
-      await SunmiPrinter.printText('Montant: $montant');
+      await SunmiPrinter.printText('Montant: $amount'); // Changement ici
       await SunmiPrinter.printText('');
       await SunmiPrinter.printText('Taxateur: $taxateur');
       await SunmiPrinter.printText('');
@@ -564,31 +563,23 @@ class DetailPage extends StatelessWidget {
       await SunmiPrinter.line();
       // Centrer le code QR
       await SunmiPrinter.setAlignment(SunmiPrintAlign.CENTER);
-      // Impression du code QR
-      await SunmiPrinter.printQRCode(
-        numero,
-      );
-      await SunmiPrinter.printText('');
-      await SunmiPrinter.printText('');
-      await SunmiPrinter.printText('');
-
-      // Affichage d'un message de réussite
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Impression terminée avec succès',
-          ),
-        ),
-      );
-    } catch (e) {
-      // Affichage d'un message d'erreur en cas d'échec de l'impression
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Échec de l\'impression : $e')),
-      );
-    }
+      // Impression du code
+  // Affichage d'un message de réussite
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text(
+        'Impression terminée avec succès',
+      ),
+    ),
+  );
+} catch (e) {
+  // Affichage d'un message d'erreur en cas d'échec de l'impression
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text('Échec de l\'impression : $e')),
+  );
+}}
   }
    Future<bool> _bindingPrinter() async {
     bool? result = await SunmiPrinter.bindingPrinter();
     return result ?? false;
   }
-}

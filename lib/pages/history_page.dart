@@ -133,7 +133,7 @@ class _HistoryPageState extends State<HistoryPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Montant: ${invoice['bill']}',
+                                'Montant: ${invoice['amount']}',
                                 style: const TextStyle(fontSize: 14),
                               ),
                               Text(
@@ -146,18 +146,19 @@ class _HistoryPageState extends State<HistoryPage> {
                             invoice['ticket'] ?? '',
                           ),
                           onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => DetailPage(
-                                  numero: invoice['reference'] ?? '',
-                                  date: formattedDate,
-                                  montant: invoice['bill'] ?? '',
-                                  taxateur: invoice['id'] ?? '',
-                                  parking: invoice['ticket'] ?? '',
-                                ),
-                              ),
-                            );
+                           Navigator.push(
+  context,
+  MaterialPageRoute(
+    builder: (context) => DetailPage(
+      numero: invoice['reference'] ?? '',
+      date: formattedDate,
+      amount: invoice['amount'] ?? '', // Modification ici
+      taxateur: invoice['id'] ?? '',
+      parking: invoice['ticket'] ?? '',
+    ),
+  ),
+);
+
                             print(invoice);
                           },
                         ),

@@ -376,6 +376,470 @@
 //   final String year;
 //   final double sales;
 // }
+// import 'dart:convert';
+// import 'package:flutter/material.dart';
+// import 'package:shared_preferences/shared_preferences.dart';
+// import 'package:syncfusion_flutter_charts/charts.dart';
+// import 'package:http/http.dart' as http;
+// import 'dart:async';
+// import 'package:intl/intl.dart';
+
+// import 'package:taxaero/pages/invoice_forme.dart';
+// import 'package:taxaero/pages/user_page.dart';
+// import 'package:taxaero/widget/app_text.dart';
+// import 'package:taxaero/widget/app_text_large.dart';
+// import 'package:taxaero/widget/constantes.dart';
+
+// class HomePage extends StatefulWidget {
+//   const HomePage({Key? key}) : super(key: key);
+
+//   @override
+//   State<HomePage> createState() => _HomePageState();
+// }
+
+// class _HomePageState extends State<HomePage> {
+//   late SharedPreferences prefs;
+//   final _totalBillTodayController = StreamController<double>.broadcast();
+//   final _numberOfInvoicesTodayController = StreamController<int>.broadcast();
+//   late List<SalesData> salesDataList = [];
+//   double totalBillYesterday = 0.0;
+//   int numberOfInvoicesYesterday = 0;
+//   double totalBillLastMonth = 0.0;
+//   int numberOfInvoicesLastMonth = 0;
+
+//   @override
+//   void initState() {
+//     super.initState();
+//     initSharedPreferences();
+//     fetchData();
+//     scheduleEndOfDayTask();
+//     Timer.periodic(const Duration(seconds: 10), (timer) {
+//       fetchData();
+//     });
+//   }
+
+//   @override
+//   void dispose() {
+//     _totalBillTodayController.close();
+//     _numberOfInvoicesTodayController.close();
+//     super.dispose();
+//   }
+
+//   void initSharedPreferences() async {
+//     prefs = await SharedPreferences.getInstance();
+//     setState(() {
+//       totalBillYesterday = prefs.getDouble('totalBillYesterday') ?? 0.0;
+//       numberOfInvoicesYesterday =
+//           prefs.getInt('numberOfInvoicesYesterday') ?? 0;
+//       totalBillLastMonth = prefs.getDouble('totalBillLastMonth') ?? 0.0;
+//       numberOfInvoicesLastMonth =
+//           prefs.getInt('numberOfInvoicesLastMonth') ?? 0;
+//       print('Retrieved totalBillYesterday: $totalBillYesterday');
+//       print('Retrieved numberOfInvoicesYesterday: $numberOfInvoicesYesterday');
+//       print('Retrieved totalBillLastMonth: $totalBillLastMonth');
+//       print('Retrieved numberOfInvoicesLastMonth: $numberOfInvoicesLastMonth');
+//     });
+//   }
+
+//   void fetchData() async {
+//     if (!_totalBillTodayController.isClosed &&
+//         !_numberOfInvoicesTodayController.isClosed) {
+//       final now = DateTime.now();
+//       final today = DateTime(now.year, now.month, now.day);
+
+//       List<dynamic> allInvoices = [];
+//       int page = 1;
+//       bool morePagesAvailable = true;
+
+//       while (morePagesAvailable) {
+//         final url =
+//             Uri.parse('https://taxe.happook.com/api/invoices?page=$page');
+//         final response = await http.get(url);
+
+//         if (response.statusCode == 200) {
+//           final jsonData = json.decode(response.body);
+//           final List<dynamic> invoices = jsonData['hydra:member'];
+
+//           if (invoices.isEmpty) {
+//             morePagesAvailable = false;
+//           } else {
+//             allInvoices.addAll(invoices);
+//             page++;
+//           }
+//         } else {
+//           print('Failed to fetch data. Status code: ${response.statusCode}');
+//           break;
+//         }
+//       }
+
+//       final yesterday = today.subtract(Duration(days: 1));
+//       final yesterdayInvoices = allInvoices.where((invoice) {
+//         final invoiceDateStr = invoice['createdAt'];
+//         if (invoiceDateStr != null) {
+//           final invoiceDate = DateTime.parse(invoiceDateStr).toLocal();
+//           return invoiceDate.year == yesterday.year &&
+//               invoiceDate.month == yesterday.month &&
+//               invoiceDate.day == yesterday.day;
+//         }
+//         return false;
+//       }).toList();
+
+//       final numberOfInvoicesYesterday = yesterdayInvoices.length;
+//       final totalBillYesterday = yesterdayInvoices.fold(0.0, (sum, invoice) {
+//         final amount = invoice['amount'];
+//         if (amount != null && amount is int) {
+//           return sum + amount;
+//         }
+//         return sum;
+//       }).toDouble();
+
+//       await storeYesterdayData(totalBillYesterday, numberOfInvoicesYesterday);
+
+//       final lastMonth = DateTime(now.year, now.month - 1);
+//       final lastMonthInvoices = allInvoices.where((invoice) {
+//         final invoiceDateStr = invoice['createdAt'];
+//         if (invoiceDateStr != null) {
+//           final invoiceDate = DateTime.parse(invoiceDateStr).toLocal();
+//           return invoiceDate.year == lastMonth.year &&
+//               invoiceDate.month == lastMonth.month;
+//         }
+//         return false;
+//       }).toList();
+
+//       final numberOfInvoicesLastMonth = lastMonthInvoices.length;
+//       final totalBillLastMonth = lastMonthInvoices.fold(0.0, (sum, invoice) {
+//         final amount = invoice['amount'];
+//         if (amount != null && amount is int) {
+//           return sum + amount;
+//         }
+//         return sum;
+//       }).toDouble();
+
+//       setState(() {
+//         this.numberOfInvoicesLastMonth = numberOfInvoicesLastMonth;
+//         this.totalBillLastMonth = totalBillLastMonth;
+//       });
+
+//       final todayInvoices = allInvoices.where((invoice) {
+//         final invoiceDateStr = invoice['createdAt'];
+//         if (invoiceDateStr != null) {
+//           final invoiceDate = DateTime.parse(invoiceDateStr).toLocal();
+//           return invoiceDate.year == today.year &&
+//               invoiceDate.month == today.month &&
+//               invoiceDate.day == today.day;
+//         }
+//         return false;
+//       }).toList();
+
+//       final numberOfInvoicesToday = todayInvoices.length;
+//       final totalBillToday = todayInvoices.fold(0.0, (sum, invoice) {
+//         final amount = invoice['amount'];
+//         if (amount != null && amount is int) {
+//           return sum + amount;
+//         }
+//         return sum;
+//       }).toDouble();
+
+//       if (!_totalBillTodayController.isClosed) {
+//         _totalBillTodayController.add(totalBillToday);
+//       }
+//       if (!_numberOfInvoicesTodayController.isClosed) {
+//         _numberOfInvoicesTodayController.add(numberOfInvoicesToday);
+//       }
+
+//       updateSalesDataList(allInvoices);
+
+//       print('Nombre de factures vendues aujourd\'hui : $numberOfInvoicesToday');
+//       print('Total des montants vendus aujourd\'hui : $totalBillToday');
+//     }
+//   }
+
+//   Future<void> storeYesterdayData(
+//       double totalBill, int numberOfInvoices) async {
+//     prefs = await SharedPreferences.getInstance();
+//     await prefs.setDouble('totalBillYesterday', totalBill);
+//     await prefs.setInt('numberOfInvoicesYesterday', numberOfInvoices);
+//     print('Storing totalBillYesterday: $totalBill');
+//     print('Storing numberOfInvoicesYesterday: $numberOfInvoices');
+//   }
+
+//   void scheduleEndOfDayTask() {
+//     final now = DateTime.now();
+//     final endOfDay = DateTime(now.year,now.month,now.day);
+
+
+//     final durationUntilEndOfDay = endOfDay.difference(now);
+
+//     Timer(durationUntilEndOfDay, () async {
+//       final totalBillToday = await _totalBillTodayController.stream.first;
+//       final numberOfInvoicesToday =
+//           await _numberOfInvoicesTodayController.stream.first;
+//       storeYesterdayData(totalBillToday, numberOfInvoicesToday);
+//       print(
+//           'End of day data stored - Sales: $totalBillToday, Invoices: $numberOfInvoicesToday');
+//     });
+//   }
+
+//   void updateSalesDataList(List<dynamic> invoices) {
+//     salesDataList = [];
+
+//     salesDataList
+//         .add(SalesData('Lun', getTotalSalesForDay(invoices, DateTime.monday)));
+//     salesDataList
+//         .add(SalesData('Mar', getTotalSalesForDay(invoices, DateTime.tuesday)));
+//     salesDataList.add(
+//         SalesData('Mer', getTotalSalesForDay(invoices, DateTime.wednesday)));
+//     salesDataList.add(
+//         SalesData('Jeu', getTotalSalesForDay(invoices, DateTime.thursday)));
+//     salesDataList
+//         .add(SalesData('Ven', getTotalSalesForDay(invoices, DateTime.friday)));
+//     salesDataList.add(
+//         SalesData('Sam', getTotalSalesForDay(invoices, DateTime.saturday)));
+//     salesDataList
+//         .add(SalesData('Dim', getTotalSalesForDay(invoices, DateTime.sunday)));
+
+//     setState(() {
+//       print('Sales data updated');
+//       salesDataList.forEach((data) {
+//         print('${data.year}: ${data.sales}');
+//       });
+//     });
+//   }
+
+//   double getTotalSalesForDay(List<dynamic> invoices, int dayOfWeek) {
+//     final salesForDay = invoices.where((invoice) {
+//       final invoiceDateStr = invoice['createdAt'];
+//       if (invoiceDateStr != null) {
+//         final invoiceDate = DateTime.parse(invoiceDateStr).toLocal();
+//         return invoiceDate.weekday == dayOfWeek;
+//       }
+//       return false;
+//     }).toList();
+
+//     return salesForDay.fold(0.0, (sum, invoice) {
+//       final bill = invoice['amount'];
+//       if (bill != null && double.tryParse(bill) != null) {
+//         return sum + double.parse(bill);
+//       }
+//       return sum;
+//     });
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       body: SafeArea(
+//         child: SingleChildScrollView(
+//           child: Padding(
+//             padding: const EdgeInsets.all(8.0),
+//             child: Column(
+//               crossAxisAlignment: CrossAxisAlignment.start,
+//               children: <Widget>[
+//                 Row(
+//                   children: [
+//                     AppTextLarge(
+//                       text: 'Taxe Moto',
+//                       size: 40,
+//                     ),
+//                     const Spacer(),
+//                     GestureDetector(
+//                       onTap: () {
+//                         Navigator.push(
+//                           context,
+//                           MaterialPageRoute(
+//                             builder: (context) => const UserPage(),
+//                           ),
+//                         );
+//                       },
+//                       child: Card(
+//                         child: Container(
+//                           height: 50,
+//                           width: 50,
+//                           child: IconButton(
+//                             onPressed: () {
+//                               showModalBottomSheet(
+//                                 backgroundColor: Colors.transparent,
+//                                 useSafeArea: true,
+//                                 context: context,
+//                                 builder: (context) {
+//                                   return Container(
+//                                     decoration: BoxDecoration(
+//                                         borderRadius: BorderRadius.circular(20),
+//                                         color: Colors.white),
+//                                     child: const UserPage(),
+//                                   );
+//                                 },
+//                               );
+//                             },
+//                             icon: Icon(Icons.person),
+//                           ),
+//                         ),
+//                       ),
+//                     ),
+//                   ],
+//                 ),
+//                 const SizedBox(height: 20),
+//                 Row(
+//                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//                   children: [
+//                     StreamBuilder<double>(
+//                       stream: _totalBillTodayController.stream,
+//                       builder: (context, snapshot) {
+//                         if (snapshot.hasData) {
+//                           return Padding(
+//                             padding: const EdgeInsets.only(left: 15.0),
+//                             child: Column(
+//                               crossAxisAlignment: CrossAxisAlignment.start,
+//                               children: [
+//                                 AppText(text: 'TOTAL VENTE AUJOURD\'HUI'),
+//                                 AppTextLarge(
+//                                   text:
+//                                       'Fc ${snapshot.data!.toStringAsFixed(2)}',
+//                                   size: 20,
+//                                 ),
+//                               ],
+//                             ),
+//                           );
+//                         } else {
+//                           return const Text('chargement ...');
+//                         }
+//                       },
+//                     ),
+//                     StreamBuilder<int>(
+//                       stream: _numberOfInvoicesTodayController.stream,
+//                       builder: (context, snapshot) {
+//                         if (snapshot.hasData) {
+//                           return Padding(
+//                             padding: const EdgeInsets.only(left: 15.0,right: 10),
+//                             child: Column(
+//                               crossAxisAlignment: CrossAxisAlignment.start,
+//                               children: [
+//                                 AppText(text: 'Tickets'),
+//                                 AppTextLarge(
+//                                   text: snapshot.data.toString(),
+//                                   size: 20,
+//                                 ),
+//                               ],
+//                             ),
+//                           );
+//                         } else {
+//                           return const Text('chargement ...');
+//                         }
+//                       },
+//                     ),
+//                   ],
+//                 ),
+//                 sizedbox,
+//                 Padding(
+//                   padding: EdgeInsets.only(left: 15.0),
+//                   child: AppText(text: 'VENTE DEJA ENREGISTRE'),
+//                 ),
+//                 Row(
+//                   mainAxisAlignment: MainAxisAlignment.spaceAround,
+//                   children: [
+//                     _buildStatContainer(context, 'Hier:', totalBillYesterday,
+//                         '$numberOfInvoicesYesterday Tck'),
+//                     _buildStatContainer(context, 'Mois denier:',
+//                         totalBillLastMonth, '$numberOfInvoicesLastMonth Tck'),
+//                   ],
+//                 ),
+//                 sizedbox,
+//                 Padding(
+//                   padding: EdgeInsets.only(left: 15.0, bottom: 10),
+//                   child: AppText(text: 'VENTE SEMAINE'),
+//                 ),
+//                 SfCartesianChart(
+//                   primaryXAxis: const CategoryAxis(
+//                     labelStyle: TextStyle(fontSize: 10),
+//                   ),
+//                   primaryYAxis: NumericAxis(
+//                     labelStyle: const TextStyle(fontSize: 10),
+//                     numberFormat: NumberFormat.compact(),
+//                   ),
+//                   series: <ColumnSeries<SalesData, String>>[
+//                     ColumnSeries<SalesData, String>(
+//                       dataSource: salesDataList,
+//                       xValueMapper: (SalesData sales, _) => sales.year,
+//                       yValueMapper: (SalesData sales, _) => sales.sales,
+//                       isTrackVisible: true,
+//                       borderRadius: BorderRadius.circular(10),
+//                     )
+//                   ],
+//                 ),
+//               ],
+//             ),
+//           ),
+//         ),
+//       ),
+//       floatingActionButton: FloatingActionButton(
+//         backgroundColor: Colors.blue.shade300,
+//         shape: RoundedRectangleBorder(
+//           borderRadius:
+//               BorderRadius.circular(30), // Set your desired border radius here
+//         ),
+//         onPressed: () {
+//           showModalBottomSheet(
+//             backgroundColor: Colors.transparent,
+//             useSafeArea: true,
+//             context: context,
+//             builder: (context) {
+//               return Container(
+//                 decoration: BoxDecoration(
+//                     borderRadius: BorderRadius.circular(20),
+//                     color: Colors.white),
+//                 child: const EditTaxFormPage(),
+//               );
+//             },
+//           );
+//         },
+//         child: const Icon(Icons.note_add),
+//       ),
+//     );
+//   }
+
+//   Widget _buildStatContainer(
+//       BuildContext context, String period, double sales, String billets) {
+//     print('$period - Sales: $sales, Billets: $billets');
+//     return Container(
+//       height: 100,
+//       width: MediaQuery.of(context).size.width * 0.45,
+//       margin: const EdgeInsets.only(top: 10.0),
+//       padding: const EdgeInsets.all(16.0),
+//       decoration: BoxDecoration(
+//         color: Colors.blue.shade300,
+//         borderRadius: BorderRadius.circular(20),
+//       ),
+//       child: Column(
+//         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//         children: <Widget>[
+//           Row(
+//             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//             children: [
+//               AppTextLarge(
+//                 text: period,
+//                 size: 16,
+//               ),
+//               AppText(
+//                 text: billets,
+//               ),
+//             ],
+//           ),
+//           AppTextLarge(
+//             text: 'Fc ${sales.toStringAsFixed(2)}',
+//             size: 18,
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+// }
+
+// class SalesData {
+//   SalesData(this.year, this.sales);
+
+//   final String year;
+//   final double sales;
+// }
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -401,7 +865,7 @@ class _HomePageState extends State<HomePage> {
   late SharedPreferences prefs;
   final _totalBillTodayController = StreamController<double>.broadcast();
   final _numberOfInvoicesTodayController = StreamController<int>.broadcast();
-  late List<SalesData> salesDataList = [];
+  List<SalesData> salesDataList = []; // Remove 'late' and initialize as empty
   double totalBillYesterday = 0.0;
   int numberOfInvoicesYesterday = 0;
   double totalBillLastMonth = 0.0;
@@ -429,176 +893,150 @@ class _HomePageState extends State<HomePage> {
     prefs = await SharedPreferences.getInstance();
     setState(() {
       totalBillYesterday = prefs.getDouble('totalBillYesterday') ?? 0.0;
-      numberOfInvoicesYesterday =
-          prefs.getInt('numberOfInvoicesYesterday') ?? 0;
+      numberOfInvoicesYesterday = prefs.getInt('numberOfInvoicesYesterday') ?? 0;
       totalBillLastMonth = prefs.getDouble('totalBillLastMonth') ?? 0.0;
-      numberOfInvoicesLastMonth =
-          prefs.getInt('numberOfInvoicesLastMonth') ?? 0;
-      print('Retrieved totalBillYesterday: $totalBillYesterday');
-      print('Retrieved numberOfInvoicesYesterday: $numberOfInvoicesYesterday');
-      print('Retrieved totalBillLastMonth: $totalBillLastMonth');
-      print('Retrieved numberOfInvoicesLastMonth: $numberOfInvoicesLastMonth');
+      numberOfInvoicesLastMonth = prefs.getInt('numberOfInvoicesLastMonth') ?? 0;
     });
   }
-void fetchData() async {
-  if (!_totalBillTodayController.isClosed && !_numberOfInvoicesTodayController.isClosed) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
 
-    List<dynamic> allInvoices = [];
-    int page = 1;
-    bool morePagesAvailable = true;
+  void fetchData() async {
+    if (!_totalBillTodayController.isClosed && !_numberOfInvoicesTodayController.isClosed) {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
 
-    while (morePagesAvailable) {
-      final url = Uri.parse('https://taxe.happook.com/api/invoices?page=$page');
-      final response = await http.get(url);
+      List<dynamic> allInvoices = [];
+      int page = 1;
+      bool morePagesAvailable = true;
 
-      if (response.statusCode == 200) {
-        final jsonData = json.decode(response.body);
-        final List<dynamic> invoices = jsonData['hydra:member'];
+      while (morePagesAvailable) {
+        final url = Uri.parse('https://taxe.happook.com/api/invoices?page=$page');
+        final response = await http.get(url);
 
-        if (invoices.isEmpty) {
-          morePagesAvailable = false;
+        if (response.statusCode == 200) {
+          final jsonData = json.decode(response.body);
+          final List<dynamic> invoices = jsonData['hydra:member'];
+
+          if (invoices.isEmpty) {
+            morePagesAvailable = false;
+          } else {
+            allInvoices.addAll(invoices);
+            page++;
+          }
         } else {
-          allInvoices.addAll(invoices);
-          page++;
+          print('Failed to fetch data. Status code: ${response.statusCode}');
+          break;
         }
-      } else {
-        print('Failed to fetch data. Status code: ${response.statusCode}');
-        break;
       }
+
+      final yesterday = today.subtract(Duration(days: 1));
+      final yesterdayInvoices = allInvoices.where((invoice) {
+        final invoiceDateStr = invoice['createdAt'];
+        if (invoiceDateStr != null) {
+          final invoiceDate = DateTime.parse(invoiceDateStr).toLocal();
+          return invoiceDate.year == yesterday.year &&
+              invoiceDate.month == yesterday.month &&
+              invoiceDate.day == yesterday.day;
+        }
+        return false;
+      }).toList();
+
+      final numberOfInvoicesYesterday = yesterdayInvoices.length;
+      final totalBillYesterday = yesterdayInvoices.fold(0.0, (sum, invoice) {
+        final amount = invoice['amount'];
+        if (amount != null && amount is int) {
+          return sum + amount;
+        }
+        return sum;
+      }).toDouble();
+
+      await storeYesterdayData(totalBillYesterday, numberOfInvoicesYesterday);
+
+      final lastMonth = DateTime(now.year, now.month - 1);
+      final lastMonthInvoices = allInvoices.where((invoice) {
+        final invoiceDateStr = invoice['createdAt'];
+        if (invoiceDateStr != null) {
+          final invoiceDate = DateTime.parse(invoiceDateStr).toLocal();
+          return invoiceDate.year == lastMonth.year && invoiceDate.month == lastMonth.month;
+        }
+        return false;
+      }).toList();
+
+      final numberOfInvoicesLastMonth = lastMonthInvoices.length;
+      final totalBillLastMonth = lastMonthInvoices.fold(0.0, (sum, invoice) {
+        final amount = invoice['amount'];
+        if (amount != null && amount is int) {
+          return sum + amount;
+        }
+        return sum;
+      }).toDouble();
+
+      setState(() {
+        this.numberOfInvoicesLastMonth = numberOfInvoicesLastMonth;
+        this.totalBillLastMonth = totalBillLastMonth;
+      });
+
+      final todayInvoices = allInvoices.where((invoice) {
+        final invoiceDateStr = invoice['createdAt'];
+        if (invoiceDateStr != null) {
+          final invoiceDate = DateTime.parse(invoiceDateStr).toLocal();
+          return invoiceDate.year == today.year &&
+              invoiceDate.month == today.month &&
+              invoiceDate.day == today.day;
+        }
+        return false;
+      }).toList();
+
+      final numberOfInvoicesToday = todayInvoices.length;
+      final totalBillToday = todayInvoices.fold(0.0, (sum, invoice) {
+        final amount = invoice['amount'];
+        if (amount != null && amount is int) {
+          return sum + amount;
+        }
+        return sum;
+      }).toDouble();
+
+      if (!_totalBillTodayController.isClosed) {
+        _totalBillTodayController.add(totalBillToday);
+      }
+      if (!_numberOfInvoicesTodayController.isClosed) {
+        _numberOfInvoicesTodayController.add(numberOfInvoicesToday);
+      }
+
+      updateSalesDataList(allInvoices);
     }
-
-    final yesterday = today.subtract(Duration(days: 1));
-    final yesterdayInvoices = allInvoices.where((invoice) {
-      final invoiceDateStr = invoice['createdAt'];
-      if (invoiceDateStr != null) {
-        final invoiceDate = DateTime.parse(invoiceDateStr).toLocal();
-        return invoiceDate.year == yesterday.year && invoiceDate.month == yesterday.month && invoiceDate.day == yesterday.day;
-      }
-      return false;
-    }).toList();
-
-    print('Factures d\'hier : $yesterdayInvoices');
-
-    final numberOfInvoicesYesterday = yesterdayInvoices.length;
-    final totalBillYesterday = yesterdayInvoices.fold(0.0, (sum, invoice) {
-      final bill = invoice['bill'];
-      if (bill != null && double.tryParse(bill) != null) {
-        return sum + double.parse(bill);
-      }
-      return sum;
-    }).toDouble();
-
-    print('Total des factures d\'hier : $totalBillYesterday');
-    print('Nombre de factures d\'hier : $numberOfInvoicesYesterday');
-
-    await storeYesterdayData(totalBillYesterday, numberOfInvoicesYesterday);
-
-    final lastMonth = DateTime(now.year, now.month - 1);
-    final lastMonthInvoices = allInvoices.where((invoice) {
-      final invoiceDateStr = invoice['createdAt'];
-      if (invoiceDateStr != null) {
-        final invoiceDate = DateTime.parse(invoiceDateStr).toLocal();
-        return invoiceDate.year == lastMonth.year && invoiceDate.month == lastMonth.month;
-      }
-      return false;
-    }).toList();
-
-    final numberOfInvoicesLastMonth = lastMonthInvoices.length;
-    final totalBillLastMonth = lastMonthInvoices.fold(0.0, (sum, invoice) {
-      final bill = invoice['bill'];
-      if (bill != null && double.tryParse(bill) != null) {
-        return sum + double.parse(bill);
-      }
-      return sum;
-    }).toDouble();
-
-    setState(() {
-      this.numberOfInvoicesLastMonth = numberOfInvoicesLastMonth;
-      this.totalBillLastMonth = totalBillLastMonth;
-    });
-
-    final todayInvoices = allInvoices.where((invoice) {
-      final invoiceDateStr = invoice['createdAt'];
-      if (invoiceDateStr != null) {
-        final invoiceDate = DateTime.parse(invoiceDateStr).toLocal();
-        return invoiceDate.year == today.year && invoiceDate.month == today.month && invoiceDate.day == today.day;
-      }
-      return false;
-    }).toList();
-
-    final numberOfInvoicesToday = todayInvoices.length;
-    final totalBillToday = todayInvoices.fold(0.0, (sum, invoice) {
-      final bill = invoice['bill'];
-      if (bill != null && double.tryParse(bill) != null) {
-        return sum + double.parse(bill);
-      }
-      return sum;
-    }).toDouble();
-
-    if (!_totalBillTodayController.isClosed) {
-      _totalBillTodayController.add(totalBillToday);
-    }
-    if (!_numberOfInvoicesTodayController.isClosed) {
-      _numberOfInvoicesTodayController.add(numberOfInvoicesToday);
-    }
-
-    updateSalesDataList(allInvoices);
-
-    print('Nombre de factures vendues aujourd\'hui : $numberOfInvoicesToday');
-    print('Total des montants vendus aujourd\'hui : $totalBillToday');
   }
-}
 
-Future<void> storeYesterdayData(double totalBill, int numberOfInvoices) async {
-  prefs = await SharedPreferences.getInstance();
-  await prefs.setDouble('totalBillYesterday', totalBill);
-  await prefs.setInt('numberOfInvoicesYesterday', numberOfInvoices);
-  print('Storing totalBillYesterday: $totalBill');
-  print('Storing numberOfInvoicesYesterday: $numberOfInvoices');
-}
+  Future<void> storeYesterdayData(double totalBill, int numberOfInvoices) async {
+    prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('totalBillYesterday', totalBill);
+    await prefs.setInt('numberOfInvoicesYesterday', numberOfInvoices);
+  }
 
+  void scheduleEndOfDayTask() {
+    final now = DateTime.now();
+    final endOfDay = DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
 
-void scheduleEndOfDayTask() {
-  final now = DateTime.now();
-  final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
+    final durationUntilEndOfDay = endOfDay.difference(now);
 
-  final durationUntilEndOfDay = endOfDay.difference(now);
-
-  Timer(durationUntilEndOfDay, () async {
-    final totalBillToday = await _totalBillTodayController.stream.first;
-    final numberOfInvoicesToday = await _numberOfInvoicesTodayController.stream.first;
-    storeYesterdayData(totalBillToday, numberOfInvoicesToday);
-    print('End of day data stored - Sales: $totalBillToday, Invoices: $numberOfInvoicesToday');
-  });
-}
-
+    Timer(durationUntilEndOfDay, () async {
+      final totalBillToday = await _totalBillTodayController.stream.first;
+      final numberOfInvoicesToday = await _numberOfInvoicesTodayController.stream.first;
+      storeYesterdayData(totalBillToday, numberOfInvoicesToday);
+    });
+  }
 
   void updateSalesDataList(List<dynamic> invoices) {
-    salesDataList = [];
+    salesDataList = [
+      SalesData('Lun', getTotalSalesForDay(invoices, DateTime.monday)),
+      SalesData('Mar', getTotalSalesForDay(invoices, DateTime.tuesday)),
+      SalesData('Mer', getTotalSalesForDay(invoices, DateTime.wednesday)),
+      SalesData('Jeu', getTotalSalesForDay(invoices, DateTime.thursday)),
+      SalesData('Ven', getTotalSalesForDay(invoices, DateTime.friday)),
+      SalesData('Sam', getTotalSalesForDay(invoices, DateTime.saturday)),
+      SalesData('Dim', getTotalSalesForDay(invoices, DateTime.sunday)),
+    ];
 
-    salesDataList
-        .add(SalesData('Lun', getTotalSalesForDay(invoices, DateTime.monday)));
-    salesDataList
-        .add(SalesData('Mar', getTotalSalesForDay(invoices, DateTime.tuesday)));
-    salesDataList.add(
-        SalesData('Mer', getTotalSalesForDay(invoices, DateTime.wednesday)));
-    salesDataList.add(
-        SalesData('Jeu', getTotalSalesForDay(invoices, DateTime.thursday)));
-    salesDataList
-        .add(SalesData('Ven', getTotalSalesForDay(invoices, DateTime.friday)));
-    salesDataList.add(
-        SalesData('Sam', getTotalSalesForDay(invoices, DateTime.saturday)));
-    salesDataList
-        .add(SalesData('Dim', getTotalSalesForDay(invoices, DateTime.sunday)));
-
-    setState(() {
-      print('Sales data updated');
-      salesDataList.forEach((data) {
-        print('${data.year}: ${data.sales}');
-      });
-    });
+    setState(() {}); // Call setState to rebuild the widget with new data
   }
 
   double getTotalSalesForDay(List<dynamic> invoices, int dayOfWeek) {
@@ -612,14 +1050,13 @@ void scheduleEndOfDayTask() {
     }).toList();
 
     return salesForDay.fold(0.0, (sum, invoice) {
-      final bill = invoice['bill'];
-      if (bill != null && double.tryParse(bill) != null) {
-        return sum + double.parse(bill);
+      final bill = invoice['amount'];
+      if (bill != null && bill is int) {
+        return sum + bill;
       }
       return sum;
     });
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -667,7 +1104,7 @@ void scheduleEndOfDayTask() {
                                 },
                               );
                             },
-                            icon: Icon(Icons.person),
+                            icon: const Icon(Icons.person),
                           ),
                         ),
                       ),
@@ -675,77 +1112,80 @@ void scheduleEndOfDayTask() {
                   ],
                 ),
                 const SizedBox(height: 20),
-                StreamBuilder<double>(
-                  stream: _totalBillTodayController.stream,
-                  builder: (context, snapshot) {
-                    if (snapshot.hasData) {
-                      return Padding(
-                        padding: const EdgeInsets.only(left: 15.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            AppText(text: 'TOTAL VENTE AUJOURD\'HUI'),
-                            AppTextLarge(
-                              text: 'Fc ${snapshot.data!.toStringAsFixed(2)}',
-                              size: 20,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    StreamBuilder<double>(
+                      stream: _totalBillTodayController.stream,
+                      builder: (context, snapshot) {
+                        if (snapshot.hasData) {
+                          return Padding(
+                            padding: const EdgeInsets.only(left: 15.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                 AppText(text: 'TOTAL VENTE AUJOURD\'HUI'),
+                                AppTextLarge(
+                                  text: 'Fc ${snapshot.data!.toStringAsFixed(2)}',
+                                  size: 20,
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      );
-                    } else {
-                      return const Text('chargement ...');
-                    }
-                  },
+                          );
+                        } else {
+                          return const Text('chargement ...');
+                        }
+                      },
+                    ),
+                    StreamBuilder<int>(
+                      stream: _numberOfInvoicesTodayController.stream,
+                      builder: (context, snapshot) {
+                        if (snapshot.hasData) {
+                          return Padding(
+                            padding: const EdgeInsets.only(left: 15.0, right: 10),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                 AppText(text: 'Tickets'),
+                                AppTextLarge(
+                                  text: snapshot.data.toString(),
+                                  size: 20,
+                                ),
+                              ],
+                            ),
+                          );
+                        } else {
+                          return const Text('chargement ...');
+                        }
+                      },
+                    ),
+                  ],
                 ),
                 sizedbox,
-                StreamBuilder<int>(
-                  stream: _numberOfInvoicesTodayController.stream,
-                  builder: (context, snapshot) {
-                    if (snapshot.hasData) {
-                      return Padding(
-                        padding: const EdgeInsets.only(left: 15.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            AppText(text: 'Nombre de facture'),
-                            AppTextLarge(
-                              text: snapshot.data.toString(),
-                              size: 20,
-                            ),
-                          ],
-                        ),
-                      );
-                    } else {
-                      return const Text('chargement ...');
-                    }
-                  },
-                ),
-                sizedbox,
-                Padding(
+                 Padding(
                   padding: EdgeInsets.only(left: 15.0),
                   child: AppText(text: 'VENTE DEJA ENREGISTRE'),
                 ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildStatContainer(context, 'Hier:', totalBillYesterday,
-                        '$numberOfInvoicesYesterday Tck'),
-                    _buildStatContainer(context, 'Mois Passé:',
-                        totalBillLastMonth, '$numberOfInvoicesLastMonth Tck'),
+                    _buildStatContainer(context, 'Hier:', totalBillYesterday, '$numberOfInvoicesYesterday Tck'),
+                    _buildStatContainer(context, 'Mois denier:', totalBillLastMonth, '$numberOfInvoicesLastMonth Tck'),
                   ],
                 ),
                 sizedbox,
-                Padding(
-                  padding: EdgeInsets.only(left: 15.0,bottom: 10),
+                 Padding(
+                  padding: EdgeInsets.only(left: 15.0, bottom: 10),
                   child: AppText(text: 'VENTE SEMAINE'),
                 ),
                 SfCartesianChart(
                   primaryXAxis: const CategoryAxis(
-                    labelStyle:  TextStyle(fontSize: 10),
+                    labelStyle: TextStyle(fontSize: 10),
                   ),
                   primaryYAxis: NumericAxis(
-                      labelStyle: const TextStyle(fontSize: 10),
-                      numberFormat: NumberFormat.compact()),
+                    labelStyle: const TextStyle(fontSize: 10),
+                    numberFormat: NumberFormat.compact(),
+                  ),
                   series: <ColumnSeries<SalesData, String>>[
                     ColumnSeries<SalesData, String>(
                       dataSource: salesDataList,
@@ -762,9 +1202,9 @@ void scheduleEndOfDayTask() {
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.blue.shade300,
         shape: RoundedRectangleBorder(
-          borderRadius:
-              BorderRadius.circular(30), // Set your desired border radius here
+          borderRadius: BorderRadius.circular(30),
         ),
         onPressed: () {
           showModalBottomSheet(
@@ -786,16 +1226,14 @@ void scheduleEndOfDayTask() {
     );
   }
 
-  Widget _buildStatContainer(
-      BuildContext context, String period, double sales, String billets) {
-    print('$period - Sales: $sales, Billets: $billets');
+  Widget _buildStatContainer(BuildContext context, String period, double sales, String billets) {
     return Container(
       height: 100,
       width: MediaQuery.of(context).size.width * 0.45,
       margin: const EdgeInsets.only(top: 10.0),
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
-        color: Colors.blue.shade100,
+        color: Colors.blue.shade300,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(

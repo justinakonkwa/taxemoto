@@ -150,11 +150,11 @@ class _LoginPageState extends State<LoginPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               SizedBox(
-                width: 100,
-                height: 100,
+                width: 200,
+                height: 200,
                 child: Image.asset('assets/intro4.png'),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 20),
               const Text('Se connecter avec Taxe Moto'),
               sizedbox,
               SizedBox(
