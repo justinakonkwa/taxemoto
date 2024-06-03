@@ -305,7 +305,6 @@
 //   }
 // }
 
-
 // ignore_for_file: unused_local_variable
 import 'dart:io';
 
@@ -346,7 +345,7 @@ class DetailPage extends StatelessWidget {
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
-                 FutureBuilder(
+                FutureBuilder(
                   future: _bindingPrinter(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.done) {
@@ -563,23 +562,33 @@ class DetailPage extends StatelessWidget {
       await SunmiPrinter.line();
       // Centrer le code QR
       await SunmiPrinter.setAlignment(SunmiPrintAlign.CENTER);
-      // Impression du code
-  // Affichage d'un message de réussite
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(
-      content: Text(
-        'Impression terminée avec succès',
-      ),
-    ),
-  );
-} catch (e) {
-  // Affichage d'un message d'erreur en cas d'échec de l'impression
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text('Échec de l\'impression : $e')),
-  );
-}}
+
+      await SunmiPrinter.printQRCode(
+        numero,
+      );
+      await SunmiPrinter.printText('');
+      await SunmiPrinter.printText('');
+      await SunmiPrinter.printText('');
+      await SunmiPrinter.printText('');
+      await SunmiPrinter.printText('');
+      // Affichage d'un message de réussite
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Impression terminée avec succès',
+          ),
+        ),
+      );
+    } catch (e) {
+      // Affichage d'un message d'erreur en cas d'échec de l'impression
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Échec de l\'impression : $e')),
+      );
+    }
   }
-   Future<bool> _bindingPrinter() async {
-    bool? result = await SunmiPrinter.bindingPrinter();
-    return result ?? false;
-  }
+}
+
+Future<bool> _bindingPrinter() async {
+  bool? result = await SunmiPrinter.bindingPrinter();
+  return result ?? false;
+}

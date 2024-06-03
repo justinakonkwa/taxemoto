@@ -146,18 +146,18 @@ class _HistoryPageState extends State<HistoryPage> {
                             invoice['ticket'] ?? '',
                           ),
                           onTap: () {
-                           Navigator.push(
-  context,
-  MaterialPageRoute(
-    builder: (context) => DetailPage(
-      numero: invoice['reference'] ?? '',
-      date: formattedDate,
-      amount: invoice['amount'] ?? '', // Modification ici
-      taxateur: invoice['id'] ?? '',
-      parking: invoice['ticket'] ?? '',
-    ),
-  ),
-);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => DetailPage(
+                                  numero: invoice['reference'] ?? '',
+                                  date: formattedDate,
+                                  amount: invoice['amount'] ?? '',
+                                  taxateur: invoice['id'] ?? '',
+                                  parking: invoice['ticket'] ?? '',
+                                ),
+                              ),
+                            );
 
                             print(invoice);
                           },

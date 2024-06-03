@@ -1179,6 +1179,7 @@ class _HomePageState extends State<HomePage> {
                   child: AppText(text: 'VENTE SEMAINE'),
                 ),
                 SfCartesianChart(
+                  
                   primaryXAxis: const CategoryAxis(
                     labelStyle: TextStyle(fontSize: 10),
                   ),
@@ -1188,6 +1189,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                   series: <ColumnSeries<SalesData, String>>[
                     ColumnSeries<SalesData, String>(
+                      color: Colors.blue.shade300,
                       dataSource: salesDataList,
                       xValueMapper: (SalesData sales, _) => sales.year,
                       yValueMapper: (SalesData sales, _) => sales.sales,
@@ -1243,6 +1245,7 @@ class _HomePageState extends State<HomePage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               AppTextLarge(
+                color: Colors.white,
                 text: period,
                 size: 16,
               ),
@@ -1254,6 +1257,7 @@ class _HomePageState extends State<HomePage> {
           AppTextLarge(
             text: 'Fc ${sales.toStringAsFixed(2)}',
             size: 18,
+            color: Colors.white,
           ),
         ],
       ),
