@@ -7,9 +7,9 @@ ThemeData lightMode = ThemeData(
   colorScheme: ColorScheme.light(
     background:Color(0xfff5f5f5),
     onBackground:Color(0xff272829),
-    primary: Colors.blue,
+    primary: Colors.blue.shade300,
     inversePrimary: Color(0xffeeeaea),
-    secondary: Colors.green.shade900,
+    secondary: Colors.grey.shade300,
     onSecondary: Color(0xff272829)
   ),
   appBarTheme: AppBarTheme(

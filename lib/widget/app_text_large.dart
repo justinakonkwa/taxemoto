@@ -22,7 +22,7 @@ class AppTextLarge extends StatelessWidget {
       style: TextStyle(
         fontSize: size,
         fontFamily: 'Montserrat',
-        fontWeight: FontWeight.bold,
+        fontWeight: FontWeight.w500,
         color: color,
         letterSpacing: 0,
         decoration: TextDecoration.none,

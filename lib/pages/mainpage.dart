@@ -64,7 +64,6 @@ class _MainPageState extends State<MainPage> {
               ),
               label: ('History'),
             ),
-           
           ],
           onTap: (index) {
             setState(

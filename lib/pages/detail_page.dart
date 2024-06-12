@@ -315,6 +315,7 @@ import 'package:flutter/widgets.dart';
 import 'package:sunmi_printer_plus/enums.dart';
 import 'package:sunmi_printer_plus/sunmi_printer_plus.dart';
 import 'package:sunmi_printer_plus/sunmi_style.dart';
+import 'package:taxaero/pages/mainpage.dart';
 import 'package:taxaero/widget/app_text_large.dart';
 
 class DetailPage extends StatelessWidget {
@@ -337,6 +338,18 @@ class DetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
+        leading: IconButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => MainPage(),
+              ),
+            );
+          },
+          icon: Icon(Icons.arrow_back),
+        ),
         title: const Text('Facture'),
       ),
       body: SingleChildScrollView(

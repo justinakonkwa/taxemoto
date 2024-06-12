@@ -30,7 +30,7 @@ class NextButton extends StatelessWidget {
             color: Theme.of(context).colorScheme.primary,
           ),
           borderRadius: borderRadius,
-          color: Colors.blue
+          color:Theme.of(context).colorScheme.primary,
         ),
         padding: const EdgeInsets.all(10),
         child: child,

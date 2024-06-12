@@ -65,15 +65,24 @@ class _UserPageState extends State<UserPage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         automaticallyImplyLeading: false,
-        title: Text("Profil"),
+        title: AppText(text: "Profil"),
         actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            icon: const Icon(
-              Icons.clear,
-              color: Colors.red,
+             Container(
+                margin: const EdgeInsets.all(5.0),
+                height: 40,
+                width: 40,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(15),
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+            child: IconButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              icon: const Icon(
+                Icons.clear,
+                color: Colors.red,
+              ),
             ),
           )
         ],
@@ -91,7 +100,7 @@ class _UserPageState extends State<UserPage> {
                     alignment: Alignment.center,
                     child: CircleAvatar(
                       radius: 70,
-                      backgroundColor: Colors.blue,
+                      backgroundColor: Theme.of(context).colorScheme.primary,
                       backgroundImage: imagePath.isNotEmpty
                           ? FileImage(
                               File(imagePath),
@@ -103,6 +112,7 @@ class _UserPageState extends State<UserPage> {
                           ? Icon(
                               CupertinoIcons.person_alt,
                               size: 50,
+                              color: Theme.of(context).colorScheme.secondary,
                             )
                           : null,
                     ),
@@ -136,13 +146,13 @@ class _UserPageState extends State<UserPage> {
                         height: 40,
                         width: 40,
                         decoration: BoxDecoration(
-                          color: Colors.blue,
+                          color: Theme.of(context).colorScheme.primary,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                              color: Theme.of(context).colorScheme.background),
+                              color: Theme.of(context).colorScheme.secondary),
                         ),
                         child: Icon(
-                          (Icons.camera_alt_rounded),
+                          (Icons.camera_alt_rounded),color: Theme.of(context).colorScheme.secondary,
                         ),
                       ),
                     ),
@@ -174,8 +184,12 @@ class _UserPageState extends State<UserPage> {
                         padding: const EdgeInsets.only(
                             top: 7.0, bottom: 7.0, left: 15.0, right: 20.0),
                         style: TextStyle(
+                            fontFamily: 'Montserrat',
                             color: Theme.of(context).colorScheme.onBackground),
                         placeholder: 'ajouter un votre nom...',
+                        placeholderStyle: TextStyle(
+                          fontFamily: 'Montserrat',
+                        ),
                         keyboardType: TextInputType.multiline,
                         decoration: const BoxDecoration(),
                       ),
